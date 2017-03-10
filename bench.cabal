@@ -20,3 +20,4 @@ benchmark time
                    , deepseq
                    , containers
                    , csv
+                   , lens

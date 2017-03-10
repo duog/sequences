@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE BangPatterns #-}
 
@@ -19,6 +20,9 @@ import qualified Data.Vector.Unboxed as UV
 import           System.Directory
 import           System.Environment
 import           Text.CSV
+import           Control.Lens
+import           Data.Foldable
+import           Data.Proxy
 
 data Conser = forall f. NFData (f Int) => Conser String (Int -> f Int)
 data Replicator = forall f. NFData (f Int) => Replicator String (Int -> Int -> f Int)
@@ -42,6 +46,10 @@ main = do
            , Conser "Data.Vector" consvector
            , Conser "Data.Vector.Unboxed" consuvector
            , Conser "Data.Sequence" consseq
+           , Conser "Data.List lensy" (conser :: Int -> [Int])
+           , Conser "Data.Vector lensy" (conser :: Int -> V.Vector Int)
+           , Conser "Data.Vector.Unboxed lensy" (conser :: Int -> UV.Vector Int)
+           , Conser "Data.Sequence lensy" (conser :: Int -> S.Seq Int)
            ])
     , bgroup
         "Replicate"
@@ -58,10 +66,15 @@ main = do
            , Indexing "Data.Vector" vector (V.!)
            , Indexing "Data.Vector.Unboxed" uvector (UV.!)
            , Indexing "Data.Sequence" seqd (S.index)
+           , Indexing "Data.List lensy" list gindex
+           , Indexing "Data.Vector lensy" vector gindex
+           , Indexing "Data.Vector.Unboxed lensy" uvector gindex
+           , Indexing "Data.Sequence lensy" seqd gindex
            ])
     ]
   reportFromCsv fp
   where
+    gindex s = \i -> s ^?! ix i
     conses funcs =
       [ bench (title ++ " 0.." ++ show i) $ nf func i
       | i <- [10, 1000, 10000]
@@ -85,6 +98,11 @@ main = do
       | index <- [100, 1000, 8000]
       , Indexing title payload func <- funcs
       ]
+
+conser :: (AsEmpty s, Cons s s Int Int) => Int -> s
+conser n0 = go n0 Empty
+  where go 0 acc = acc
+        go n !acc = go (n - 1) (n :< acc)
 
 conslist :: Int -> [Int]
 conslist n0 = go n0 []
