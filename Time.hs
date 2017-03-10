@@ -21,8 +21,6 @@ import           System.Directory
 import           System.Environment
 import           Text.CSV
 import           Control.Lens
-import           Data.Foldable
-import           Data.Proxy
 
 data Conser = forall f. NFData (f Int) => Conser String (Int -> f Int)
 data Replicator = forall f. NFData (f Int) => Replicator String (Int -> Int -> f Int)
